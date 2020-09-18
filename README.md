@@ -1,0 +1,1 @@
+# kamigami_common
