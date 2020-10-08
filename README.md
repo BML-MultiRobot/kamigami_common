@@ -9,16 +9,15 @@ ROS packages for Kamigami usage
 | [kamigami_sim](#kamgigami_sim) | Interfacing with the kamigami in VREP simulation |
 | [kamigami_teleop](#kamigami_teleop) | Manually control the kamigami via remote operation |
 
-
 ## kamigami_driver
 
 ### Nodes
 ##### `kamigami_interface.py`
  Takes velocity commands and sets appropriate motor velocities. Publishes sensor data.
 ##### Subscribed Topics
-- `kamigami/cmd`
+- `kamigami/cmd (kamigami_common/KamigamiCommand)` Kammigami velocity command to control motors.
 ##### Published Topics
-- `kamigami/imu/data_raw`
+- `kamigami/imu/data_raw (sensor_msgs/Imu)` Raw data from IMU on kamigami.
 
 ## kamigami_bringup
 
@@ -50,13 +49,11 @@ Velocity command for kamigami.
 ##### `joy_teleop.py`
  Takes input from joystick controller to control kamigami.
 ##### Subscribed Topics
-- `joy`
+- `joy (sensor_msgs/Joy)` Joystick controller output.
 ##### Published Topics
-- `kamigami/cmd`
+- `kamigami/cmd (kamigami_common/KamigamiCommand)` Kamigami velocity command to control motors.
 
 ##### `keyboard_teleop.py`
  Takes input from keyboard to control kamigami.
-##### Subscribed Topics
-- `joy`
 ##### Published Topics
-- `kamigami/cmd`
+- `kamigami/cmd (kamigami_common/KamigamiCommand)` Kamigami velocity command to control motors.
