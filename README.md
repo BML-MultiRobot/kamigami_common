@@ -13,7 +13,7 @@ ROS packages for Kamigami usage
 ## kamigami_driver
 
 ### Nodes
-#####`kamigami_interface.py`
+##### `kamigami_interface.py`
  Takes velocity commands and sets appropriate motor velocities. Publishes sensor data.
 ##### Subscribed Topics
 - `kamigami/cmd`
@@ -24,7 +24,7 @@ ROS packages for Kamigami usage
 
 #### Launch Files
 
-#####`joy_teleop.py`
+##### `joy_teleop.py`
  Startup kamigami to be controlled by some joystick controller.
 
 ##### Launched Nodes
@@ -36,7 +36,7 @@ ROS packages for Kamigami usage
 
 #### Messages
 
-#####`KamigamiCommand.msg`
+##### `KamigamiCommand.msg`
 Velocity command for kamigami.
 
 ## kamgigami_sim
@@ -47,14 +47,14 @@ Velocity command for kamigami.
 
 #### Nodes
 
-#####`joy_teleop.py`
+##### `joy_teleop.py`
  Takes input from joystick controller to control kamigami.
 ##### Subscribed Topics
 - `joy`
 ##### Published Topics
 - `kamigami/cmd`
 
-#####`keyboard_teleop.py`
+##### `keyboard_teleop.py`
  Takes input from keyboard to control kamigami.
 ##### Subscribed Topics
 - `joy`
