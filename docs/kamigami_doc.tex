@@ -135,10 +135,11 @@ and the pinouts for other components can be viewed at the approriate pages in th
 As we can see, every component is powered by a single LiPo battery. A 3.7V 1300 mAh battery is show in the image, but my implementation uses a 3.7V 1200 mAh battery. The Raspberry Pi and motor drivers recieve power directly from the battery, and the IMU is powered from the Raspberry Pi 0's 3.3V output. Notice that the Raspberry Pi is taking in 3.7V into its 5V power input; this is fine as the Raspberry Pi internally steps down the power to 3.3V for all pins. The DC motors in the image refer to motors on actual Kamigami, which you aren't expected to remove but you should wire into the motor driver.
 
 \subsection{Mounting}
-After completing the wiring, we can affix the components to the kamigami.
-
+After completing the wiring, we can affix the components to the Kamigami. You can refer to the image of the \hyperref[fig:kamigami]{assembled kamigami} to see how I've done it. 
+I attached the IMU to the chasis using mounting tape so that there is some damping. The battery is taped onto the chasis, and then the Raspberry Pi securely taped to the top of that. The motor driver is held in place by the stiffness of the wires.
 
 \section{Network Setup}
+This system relies on a central computer able to be communicate with several Kamigami robots easily. Thus, there is some degree of networking setup with ROS in order to get this working right. The current system allows us to run a launch file on the central computer that starts up nodes on both the central computer and the Kamigami.
 
 \subsection{Setup Hostnames and Master}
 
