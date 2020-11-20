@@ -77,4 +77,14 @@ CATKIN_IGNORE
 *.fls
 *.bcf
 *.pyg
+docs/.vscode/*
+.vscode/*
+docs/_minted-kamigami_doc/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
 
+# Local History for Visual Studio Code
+.history/
