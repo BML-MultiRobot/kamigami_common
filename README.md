@@ -1,3 +1,5 @@
+[Raspberry Pi Image](https://drive.google.com/file/d/1kyBQ3Jkvwh8gAAWvV65HVU3A-R7Vj8RO/view?usp=sharing) - Password is bmslrobot
+
 # kamigami_common
 ROS packages for Kamigami usage
 
