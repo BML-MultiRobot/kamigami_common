@@ -1,0 +1,15 @@
+<launch>
+
+    <node pkg="joy" type="joy_node" name="joy_node"/>
+    <node pkg="kamigami_teleop" type="joy_teleop.py" name="xbox_control"/>
+
+    <machine
+            name="kamigami_robot"
+            address="multirobot2.local"
+            env-loader="/opt/ros/melodic/env_remote.sh"
+            user="pi"
+    />
+
+    <node machine="kamigami_robot" pkg="kamigami_driver" type="kamigami_interface.py" name="kamigami_interface"/>
+
+</launch>
