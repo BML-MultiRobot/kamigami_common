@@ -5,12 +5,9 @@ import board
 import busio
 from gpiozero import Motor, PWMOutputDevice, DigitalOutputDevice
 from adafruit_lsm6ds.lsm6ds33 import LSM6DS33
+from adafruit_lsm6ds import Rate, AccelRange, GyroRange
 from kamigami_msgs.msg import KamigamiCommand
 from sensor_msgs.msg import Imu
-
-# Important constants
-deg_to_rad = (math.pi/180)
-
 
 class KamigamiInterface():
 
@@ -28,6 +25,13 @@ class KamigamiInterface():
         # Setup IMU
         i2c = busio.I2C(board.SCL, board.SDA)
         self.sensor = LSM6DS33(i2c)
+        # These are currently the default values
+        # TODO: Read in from config file
+        # Running these at slightly above 100 Hz
+        self.sensor.accelerometer_data_rate = Rate.RATE_104_HZ
+        self.sensor.gyro_data_rate = Rate.RATE_104_HZ 
+        self.sensor.accelerometer_range = AccelRange.RANGE_4G
+        self.sensor.gyro_range = GyroRange.RANGE_250_DPS
 
         # Setup Raspberry Pi Pins
         # TODO: Take pin definitions from a config file
@@ -84,6 +88,7 @@ class KamigamiInterface():
         """
         Updating state of the Kamigami by
         - polling sensors for new data
+        - TODO: filtering
         - publishing new IMU data to imu/data_raw topic
         """
 
@@ -98,10 +103,8 @@ class KamigamiInterface():
         imu_data = Imu()
         imu_data.header.stamp = rospy.Time.now()
         imu_data.header.frame_id = 'imu_link'
-        # Convert deg -> rad for standardized IMU message
-        ang_raw = [angular_velocity[0], angular_velocity[1], angular_velocity[2]]
-        imu_data.angular_velocity.x, imu_data.angular_velocity.y, imu_data.angular_velocity.z = [ang * deg_to_rad for ang in ang_raw]
-        imu_data.linear_acceleration.x, imu_data.linear_acceleration.y, imu_data.linear_acceleration.z = linear_acceleration[0], linear_acceleration[1], linear_acceleration[2]
+        imu_data.angular_velocity.x, imu_data.angular_velocity.y, imu_data.angular_velocity.z = angular_velocity
+        imu_data.linear_acceleration.x, imu_data.linear_acceleration.y, imu_data.linear_acceleration.z = linear_acceleration
 
         # Publish new state data
         self.publisher.publish(imu_data)
