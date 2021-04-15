@@ -11,23 +11,27 @@ from sensor_msgs.msg import Imu
 
 class KamigamiInterface():
 
-    def __init__(self):
+    def __init__(self, do_calibrate=True):
         """
         Initialize Kamigami interface
         """
 
         # Setup ROS subscribers, publishers
-        self.subscriber = rospy.Subscriber('kamigami/cmd', KamigamiCommand, self.send_cmd)
-        self.publisher = rospy.Publisher('imu/data_raw', Imu, queue_size=10)
+        pwm_sub = rospy.Subscriber('kamigami/motor_cmd', KamigamiCommand, self.recieve_motor_cmd)
+        step_sub = rospy.Subscriber('kamigami/step_cmd', KamigamiCommand, self.self.recieve_step_cmd)
+        self.imu_pub = rospy.Publisher('imu/data_raw', Imu, queue_size=10)
+        
+        # Setup action clients, servers
+        # None as of now, should be using one for stepping but VREP only supports services/actions for ROS2
 
         # TODO: Add a debugging mode (multiple levels) or take advantage of ROS's own tools
 
         # Setup IMU
         i2c = busio.I2C(board.SCL, board.SDA)
         self.sensor = LSM6DS33(i2c)
-        # These are currently the default values
         # TODO: Read in from config file
         # Running these at slightly above 100 Hz
+        # These are currently the default values
         self.sensor.accelerometer_data_rate = Rate.RATE_104_HZ
         self.sensor.gyro_data_rate = Rate.RATE_104_HZ 
         self.sensor.accelerometer_range = AccelRange.RANGE_4G
@@ -44,10 +48,39 @@ class KamigamiInterface():
         self.motor_left_backward = DigitalOutputDevice(23)
         self.pins_on()
 
+        # TODO: Take in constants from some kind of config file
+        self._loop_rate = 100
+        self._step_pwm = .6
+        self._ang_desired = .1
+        self._threshold = .02
+        self._filter_alpha = .98
+
+        if do_calibrate
+            # Calibrate first
+            print("\nCalibrating! Please keep robot still.")
+            calibration_time = 3
+            calibration_start = rospy.get_time()
+            x_ang_vels = []
+            x_tilt = []
+            while (rospy.get_time() - calibration_start) < calibration_time:
+                x_ang_vels.append(angular_velocity[0])
+                x_tilt.append(get_tilt())
+                rate.sleep()
+            # Estimate gyro bias in the roll direction by averaging the angular velocity over all samples
+            self.x_ang_bias = sum(x_ang_vels)/len(x_ang_vels)
+            # Estimate current tilt
+            self.x_tilt_start = sum(x_tilt)/len(x_tilt)
+            print("\nCalibration finished!")
+            print(f"Gyro x bias: {self.x_ang_bias}")
+            print(f"Starting tilt: {self.x_tilt_start}")
+        
+        # Instance variables
+        self.roll_estimate = 0
+
         # Custom shutdown function to stop all motors
         rospy.on_shutdown(self.shutdown)
 
-    def send_cmd(self, data):
+    def recieve_motor_cmd(self, data):
         """
         Recieve KamigamiCommand message and control motors from that
         """
@@ -84,7 +117,38 @@ class KamigamiInterface():
         # print('Setting motor left to {}'.format(motor_left_speed))
         # print('Setting motor right to {}'.format(motor_right_speed))
 
-    def update_state(self):
+    def recieve_step_cmd(self, data):
+        self.take_steps(data.left_steps, data.right_steps)
+
+    self take_steps(self, left_steps, right_steps):
+        for i in range(n_steps):
+        last = rospy.get_time()
+        ang = 0
+        for _ in range(left_steps):
+            while (abs(ang - ang_desired) > threshold) and (not rospy.is_shutdown()):
+                ang_desired = abs(ang_desired)
+                send_cmd(pwm, 0)
+                cur = rospy.get_time()
+                gyro_estimate = ang + (cur - last) * (angular_velocity[0] - x_ang_bias)
+                accel_estimate = get_tilt() - x_tilt_start
+                last = cur
+                # Complementary filter equation
+                # TODO: Refine parameters based on cutoff frequencies, sampling times
+                ang = self._filter_alpha*(gyro_estimate) + (1-self._filter_alpha)*accel_estimate
+                # Only trust accelerometer if it is reasonable
+                # if abs(gyro_estimate - accel_estimate) < .1:
+                #     ang = .98 * (gyro_estimate) + .02 * accel_estimate
+                # else:
+                #     ang = gyro_estimate
+                ang_pub.publish(ang)
+
+        if rospy.is_shutdown():
+            break
+
+    def acceleration_to_tilt(self, linear_acceleration):
+        return math.atan2(linear_acceleration[1], math.sqrt(linear_acceleration[1] * linear_acceleration[1] + linear_acceleration[2] * linear_acceleration[2])) 
+
+    def update_state(self, last_time):
         """
         Updating state of the Kamigami by
         - polling sensors for new data
@@ -99,6 +163,20 @@ class KamigamiInterface():
         # print("Angular Velocity: {}".format(angular_velocity)
         # print("Linear Acceleration: {}".format(linear_acceleration))
 
+        # Apply drift correction
+        angular_velocity[0] = angular_velocity[0] - self.x_ang_bias
+
+        # Update internal roll estimate
+        cur_time - rospy.get_time()
+        gyro_estimate = self.roll_estimate + angular_velocity[0]*(cur_time-last_time)
+        accelerometer_estimate = math.atan2(linear_acceleration[1],
+                                 math.sqrt(linear_acceleration[1]*linear_acceleration[1] +
+                                           linear_acceleration[2]*linear_acceleration[2]))
+        # Simple complementary filter
+        # TODO: Use a Kalman filter!
+        self.roll_estimate = self._filter_alpha*gyro_estimate + (1-self._filter_alpha)*accelerometer_estiamte
+        print (f"Roll: {self.roll_estimate}")
+
         # Create and populate IMU message
         imu_data = Imu()
         imu_data.header.stamp = rospy.Time.now()
@@ -107,20 +185,9 @@ class KamigamiInterface():
         imu_data.linear_acceleration.x, imu_data.linear_acceleration.y, imu_data.linear_acceleration.z = linear_acceleration
 
         # Publish new state data
-        self.publisher.publish(imu_data)
-        return
+        self.imu_pub.publish(imu_data)
 
-    def run(self):
-        """
-        Keep the Kamigami interface running and update state messages
-        """
-
-        # TODO: Is this the appropriate hz?
-        rate = rospy.Rate(100)
-        while not rospy.is_shutdown():
-            self.update_state()
-            rate.sleep()
-        self.shutdown()
+        return cur_time
 
     def shutdown(self):
         """
@@ -152,6 +219,18 @@ class KamigamiInterface():
         self.motor_right_backward.off()
         self.motor_left_forward.off()
         self.motor_left_backward.off()
+
+    def run(self):
+        """
+        Keep the Kamigami interface running and update state messages
+        """
+
+        rate = rospy.Rate(self._loop_rate)
+        last_time = rospy.get_time()
+        while not rospy.is_shutdown():
+            last_time = self.update_state(last_time)
+            rate.sleep()
+        self.shutdown()
     
 if __name__ == '__main__':
     rospy.init_node('kamigami_interface', anonymous=True)
