@@ -122,7 +122,7 @@ class KamigamiInterface():
         # print('Setting motor right to {}'.format(motor_right_speed))
 
     def recieve_step_cmd(self, data):
-        self.take_steps(data.left_steps, data.right_steps)
+        # self.take_steps(data.left_steps, data.right_steps)
         self.queued_left_steps += data.left_steps
         self.queued_right_steps += data.right_steps
 
@@ -240,23 +240,22 @@ class KamigamiInterface():
         while not rospy.is_shutdown():
             # Update state
             last_time = self.update_state(last_time)
-
             # If we should be taking steps, do that
             if rospy.get_time() - last_step > self._step_rest_time:
                 if self.queued_left_steps:
-                    if (abs(self.roll_estimate - self.left_ang_desired) > self._threshold):
+                    if (abs(self.roll_estimate - self._left_ang_desired) > self._threshold):
                         self.motor_cmd(self._step_pwm, 0)
                     else:
-                        send_cmd(0, 0)
+                        self.motor_cmd(0, 0)
                         self.queued_left_steps = max(self.queued_left_steps - 1, 0)
-                        last_step = ropsy.get_time()
+                        last_step = rospy.get_time()
                 elif self.queued_right_steps:
-                    if (abs(self.roll_estimate - self.right_ang_desired) > self._threshold):
+                    if (abs(self.roll_estimate - self._right_ang_desired) > self._threshold):
                         self.motor_cmd(0, self._step_pwm)
                     else:
-                        send_cmd(0, 0)
+                        self.motor_cmd(0, 0)
                         self.queued_right_steps = max(self.queued_right_steps - 1, 0)
-                        last_step = ropsy.get_time()
+                        last_step = rospy.get_time()
             rate.sleep()
         self.shutdown()
     
