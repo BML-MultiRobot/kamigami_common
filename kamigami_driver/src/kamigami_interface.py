@@ -18,7 +18,7 @@ class KamigamiInterface():
 
         # Setup ROS subscribers, publishers
         pwm_sub = rospy.Subscriber('kamigami/motor_cmd', KamigamiCommand, self.recieve_motor_cmd)
-        step_sub = rospy.Subscriber('kamigami/step_cmd', KamigamiCommand, self.self.recieve_step_cmd)
+        step_sub = rospy.Subscriber('kamigami/step_cmd', KamigamiCommand, self.recieve_step_cmd)
         self.imu_pub = rospy.Publisher('imu/data_raw', Imu, queue_size=10)
         
         # Setup action clients, servers
@@ -55,7 +55,7 @@ class KamigamiInterface():
         self._threshold = .02
         self._filter_alpha = .98
 
-        if do_calibrate
+        if do_calibrate:
             # Calibrate first
             print("\nCalibrating! Please keep robot still.")
             calibration_time = 3
@@ -63,9 +63,8 @@ class KamigamiInterface():
             x_ang_vels = []
             x_tilt = []
             while (rospy.get_time() - calibration_start) < calibration_time:
-                x_ang_vels.append(angular_velocity[0])
-                x_tilt.append(get_tilt())
-                rate.sleep()
+                x_ang_vels.append(self.sensor.gyro[0])
+                x_tilt.append(self.acceleration_to_tilt(self.sensor.acceleration))
             # Estimate gyro bias in the roll direction by averaging the angular velocity over all samples
             self.x_ang_bias = sum(x_ang_vels)/len(x_ang_vels)
             # Estimate current tilt
@@ -120,30 +119,31 @@ class KamigamiInterface():
     def recieve_step_cmd(self, data):
         self.take_steps(data.left_steps, data.right_steps)
 
-    self take_steps(self, left_steps, right_steps):
-        for i in range(n_steps):
-        last = rospy.get_time()
-        ang = 0
-        for _ in range(left_steps):
-            while (abs(ang - ang_desired) > threshold) and (not rospy.is_shutdown()):
-                ang_desired = abs(ang_desired)
-                send_cmd(pwm, 0)
-                cur = rospy.get_time()
-                gyro_estimate = ang + (cur - last) * (angular_velocity[0] - x_ang_bias)
-                accel_estimate = get_tilt() - x_tilt_start
-                last = cur
-                # Complementary filter equation
-                # TODO: Refine parameters based on cutoff frequencies, sampling times
-                ang = self._filter_alpha*(gyro_estimate) + (1-self._filter_alpha)*accel_estimate
-                # Only trust accelerometer if it is reasonable
-                # if abs(gyro_estimate - accel_estimate) < .1:
-                #     ang = .98 * (gyro_estimate) + .02 * accel_estimate
-                # else:
-                #     ang = gyro_estimate
-                ang_pub.publish(ang)
+    def take_steps(self, left_steps, right_steps):
+        return
+      #  for i in range(n_steps):
+      #      last = rospy.get_time()
+      #      ang = 0
+      #      for _ in range(left_steps):
+      #          while (abs(ang - ang_desired) > threshold) and (not rospy.is_shutdown()):
+      #              ang_desired = abs(ang_desired)
+      #              send_cmd(pwm, 0)
+      #              cur = rospy.get_time()
+      #              gyro_estimate = ang + (cur - last) * (angular_velocity[0] - x_ang_bias)
+      #              accel_estimate = get_tilt() - x_tilt_start
+      #              last = cur
+      #              # Complementary filter equation
+      #              # TODO: Refine parameters based on cutoff frequencies, sampling times
+      #              ang = self._filter_alpha*(gyro_estimate) + (1-self._filter_alpha)*accel_estimate
+      #              # Only trust accelerometer if it is reasonable
+      #              # if abs(gyro_estimate - accel_estimate) < .1:
+      #              #     ang = .98 * (gyro_estimate) + .02 * accel_estimate
+      #              # else:
+      #              #     ang = gyro_estimate
+      #              ang_pub.publish(ang)
 
-        if rospy.is_shutdown():
-            break
+      #      if rospy.is_shutdown():
+      #          break
 
     def acceleration_to_tilt(self, linear_acceleration):
         return math.atan2(linear_acceleration[1], math.sqrt(linear_acceleration[1] * linear_acceleration[1] + linear_acceleration[2] * linear_acceleration[2])) 
@@ -157,7 +157,7 @@ class KamigamiInterface():
         """
 
         # Poll IMU sensors
-        angular_velocity = self.sensor.gyro
+        angular_velocity = list(self.sensor.gyro)
         linear_acceleration = self.sensor.acceleration
 
         # print("Angular Velocity: {}".format(angular_velocity)
@@ -167,14 +167,14 @@ class KamigamiInterface():
         angular_velocity[0] = angular_velocity[0] - self.x_ang_bias
 
         # Update internal roll estimate
-        cur_time - rospy.get_time()
+        cur_time = rospy.get_time()
         gyro_estimate = self.roll_estimate + angular_velocity[0]*(cur_time-last_time)
         accelerometer_estimate = math.atan2(linear_acceleration[1],
                                  math.sqrt(linear_acceleration[1]*linear_acceleration[1] +
                                            linear_acceleration[2]*linear_acceleration[2]))
         # Simple complementary filter
         # TODO: Use a Kalman filter!
-        self.roll_estimate = self._filter_alpha*gyro_estimate + (1-self._filter_alpha)*accelerometer_estiamte
+        self.roll_estimate = self._filter_alpha*gyro_estimate + (1-self._filter_alpha)*accelerometer_estimate
         print (f"Roll: {self.roll_estimate}")
 
         # Create and populate IMU message
