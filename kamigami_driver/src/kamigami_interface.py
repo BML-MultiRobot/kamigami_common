@@ -51,7 +51,9 @@ class KamigamiInterface():
         # TODO: Take in constants from some kind of config file
         self._loop_rate = 100
         self._step_pwm = .6
-        self._ang_desired = .1
+        self._step_rest_time = .2
+        self._left_ang_desired = .1
+        self._right_ang_desired = -.1
         self._threshold = .02
         self._filter_alpha = .98
 
@@ -75,6 +77,9 @@ class KamigamiInterface():
         
         # Instance variables
         self.roll_estimate = 0
+        # TODO: Find a better way to represent step commands...
+        self.queued_left_steps = 0
+        self.queued_right_steps = 0
 
         # Custom shutdown function to stop all motors
         rospy.on_shutdown(self.shutdown)
@@ -118,32 +123,36 @@ class KamigamiInterface():
 
     def recieve_step_cmd(self, data):
         self.take_steps(data.left_steps, data.right_steps)
+        self.queued_left_steps += data.left_steps
+        self.queued_right_steps += data.right_steps
 
-    def take_steps(self, left_steps, right_steps):
-        return
-      #  for i in range(n_steps):
-      #      last = rospy.get_time()
-      #      ang = 0
-      #      for _ in range(left_steps):
-      #          while (abs(ang - ang_desired) > threshold) and (not rospy.is_shutdown()):
-      #              ang_desired = abs(ang_desired)
-      #              send_cmd(pwm, 0)
-      #              cur = rospy.get_time()
-      #              gyro_estimate = ang + (cur - last) * (angular_velocity[0] - x_ang_bias)
-      #              accel_estimate = get_tilt() - x_tilt_start
-      #              last = cur
-      #              # Complementary filter equation
-      #              # TODO: Refine parameters based on cutoff frequencies, sampling times
-      #              ang = self._filter_alpha*(gyro_estimate) + (1-self._filter_alpha)*accel_estimate
-      #              # Only trust accelerometer if it is reasonable
-      #              # if abs(gyro_estimate - accel_estimate) < .1:
-      #              #     ang = .98 * (gyro_estimate) + .02 * accel_estimate
-      #              # else:
-      #              #     ang = gyro_estimate
-      #              ang_pub.publish(ang)
+    # def take_steps(self, left_steps, right_steps):
+    #     for i in range(left_steps):
+    #         while(abs(self.roll_estimate - self._ang_desired) > self._threshold) and (not rospy.is_shutdown())
+    #     return
+    #   #  for i in range(n_steps):
+    #   #      last = rospy.get_time()
+    #   #      ang = 0
+    #   #      for _ in range(left_steps):
+    #   #          while (abs(ang - ang_desired) > threshold) and (not rospy.is_shutdown()):
+    #   #              ang_desired = abs(ang_desired)
+    #   #              send_cmd(pwm, 0)
+    #   #              cur = rospy.get_time()
+    #   #              gyro_estimate = ang + (cur - last) * (angular_velocity[0] - x_ang_bias)
+    #   #              accel_estimate = get_tilt() - x_tilt_start
+    #   #              last = cur
+    #   #              # Complementary filter equation
+    #   #              # TODO: Refine parameters based on cutoff frequencies, sampling times
+    #   #              ang = self._filter_alpha*(gyro_estimate) + (1-self._filter_alpha)*accel_estimate
+    #   #              # Only trust accelerometer if it is reasonable
+    #   #              # if abs(gyro_estimate - accel_estimate) < .1:
+    #   #              #     ang = .98 * (gyro_estimate) + .02 * accel_estimate
+    #   #              # else:
+    #   #              #     ang = gyro_estimate
+    #   #              ang_pub.publish(ang)
 
-      #      if rospy.is_shutdown():
-      #          break
+    #   #      if rospy.is_shutdown():
+    #   #          break
 
     def acceleration_to_tilt(self, linear_acceleration):
         return math.atan2(linear_acceleration[1], math.sqrt(linear_acceleration[1] * linear_acceleration[1] + linear_acceleration[2] * linear_acceleration[2])) 
@@ -226,9 +235,28 @@ class KamigamiInterface():
         """
 
         rate = rospy.Rate(self._loop_rate)
-        last_time = rospy.get_time()
+        last_step = last_time = rospy.get_time()
+
         while not rospy.is_shutdown():
+            # Update state
             last_time = self.update_state(last_time)
+
+            # If we should be taking steps, do that
+            if rospy.get_time() - last_step > self._step_rest_time:
+                if self.queued_left_steps:
+                    if (abs(self.roll_estimate - self.left_ang_desired) > self._threshold):
+                        self.motor_cmd(self._step_pwm, 0)
+                    else:
+                        send_cmd(0, 0)
+                        self.queued_left_steps = max(self.queued_left_steps - 1, 0)
+                        last_step = ropsy.get_time()
+                elif self.queued_right_steps:
+                    if (abs(self.roll_estimate - self.right_ang_desired) > self._threshold):
+                        self.motor_cmd(0, self._step_pwm)
+                    else:
+                        send_cmd(0, 0)
+                        self.queued_right_steps = max(self.queued_right_steps - 1, 0)
+                        last_step = ropsy.get_time()
             rate.sleep()
         self.shutdown()
     
