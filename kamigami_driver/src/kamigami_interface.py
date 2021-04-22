@@ -51,9 +51,9 @@ class KamigamiInterface():
         # TODO: Take in constants from some kind of config file
         self._loop_rate = 100
         self._step_pwm = .6
-        self._step_rest_time = .2
-        self._left_ang_desired = .1
-        self._right_ang_desired = -.1
+        self._step_rest_time = .35
+        self._left_ang_desired = .09
+        self._right_ang_desired = -.09
         self._threshold = .02
         self._filter_alpha = .98
 
@@ -78,8 +78,8 @@ class KamigamiInterface():
         # Instance variables
         self.roll_estimate = 0
         # TODO: Find a better way to represent step commands...
-        self.queued_left_steps = 0
-        self.queued_right_steps = 0
+        self.queued_left_steps = 3
+        self.queued_right_steps = 3
 
         # Custom shutdown function to stop all motors
         rospy.on_shutdown(self.shutdown)
@@ -184,7 +184,7 @@ class KamigamiInterface():
         # Simple complementary filter
         # TODO: Use a Kalman filter!
         self.roll_estimate = self._filter_alpha*gyro_estimate + (1-self._filter_alpha)*accelerometer_estimate
-        print (f"Roll: {self.roll_estimate}")
+        # print (f"Roll: {self.roll_estimate}")
 
         # Create and populate IMU message
         imu_data = Imu()
@@ -245,17 +245,27 @@ class KamigamiInterface():
                 if self.queued_left_steps:
                     if (abs(self.roll_estimate - self._left_ang_desired) > self._threshold):
                         self.motor_cmd(self._step_pwm, 0)
+                        print(f"Roll: {self.roll_estimate}")
+                        # print(f"Left desired: {self._left_ang_desired}")
+                        # print(f"Threshold: {self._threshold}")
                     else:
+                        print("Left step completed!")
                         self.motor_cmd(0, 0)
                         self.queued_left_steps = max(self.queued_left_steps - 1, 0)
                         last_step = rospy.get_time()
                 elif self.queued_right_steps:
                     if (abs(self.roll_estimate - self._right_ang_desired) > self._threshold):
+                        print(f"Roll: {self.roll_estimate}")
+                        # print(f"Right desired: {self._right_ang_desired}")
+                        # print(f"Threshold: {self._threshold}")
                         self.motor_cmd(0, self._step_pwm)
                     else:
+                        print("Right step completed!")
                         self.motor_cmd(0, 0)
                         self.queued_right_steps = max(self.queued_right_steps - 1, 0)
                         last_step = rospy.get_time()
+            else:
+                print("Waiting before next step...")
             rate.sleep()
         self.shutdown()
     
