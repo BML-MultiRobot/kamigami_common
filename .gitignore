@@ -78,6 +78,7 @@ CATKIN_IGNORE
 *.bcf
 *.pyg
 docs/.vscode/*
+.vscode/
 .vscode/*
 docs/_minted-kamigami_doc/
 !.vscode/settings.json
