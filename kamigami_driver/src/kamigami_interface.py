@@ -6,7 +6,7 @@ import busio
 from gpiozero import Motor, PWMOutputDevice, DigitalOutputDevice
 from adafruit_lsm6ds.lsm6ds33 import LSM6DS33
 from adafruit_lsm6ds import Rate, AccelRange, GyroRange
-from kamigami_msgs.msg import KamigamiCommand
+from kamigami_msgs.msg import PWMCommand, StepCommand
 from sensor_msgs.msg import Imu
 
 class KamigamiInterface():
@@ -17,8 +17,8 @@ class KamigamiInterface():
         """
 
         # Setup ROS subscribers, publishers
-        pwm_sub = rospy.Subscriber('kamigami/motor_cmd', KamigamiCommand, self.recieve_motor_cmd)
-        step_sub = rospy.Subscriber('kamigami/step_cmd', KamigamiCommand, self.recieve_step_cmd)
+        pwm_sub = rospy.Subscriber('kamigami/motor_cmd', PWMCommand, self.recieve_motor_cmd)
+        step_sub = rospy.Subscriber('kamigami/step_cmd', StepCommand, self.recieve_step_cmd)
         self.imu_pub = rospy.Publisher('imu/data_raw', Imu, queue_size=10)
         
         # Setup action clients, servers
@@ -123,8 +123,8 @@ class KamigamiInterface():
 
     def recieve_step_cmd(self, data):
         # self.take_steps(data.left_steps, data.right_steps)
-        self.queued_left_steps += data.left_steps
-        self.queued_right_steps += data.right_steps
+        self.queued_left_steps = data.left_steps
+        self.queued_right_steps = data.right_steps
 
     # def take_steps(self, left_steps, right_steps):
     #     for i in range(left_steps):
