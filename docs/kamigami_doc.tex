@@ -16,14 +16,14 @@
 
 \title{Kamigami Pi 0 W Setup}
 \author{Jay Monga}
-\date{\datetime}
+\date{\today}
 
 
 \begin{document}
 
 \maketitle
 
-\begin{figure}[H]
+\begin{figure}[h]
     \centering
     \includegraphics[width=\textwidth]{images/advert_edit.png}
     \caption{Assembeled Kamigami with Raspberry Pi 0 and attached peripherals}
@@ -38,7 +38,7 @@
 \section{Introduction}
 The \href{https://kamigamirobots.com/}{Kamigami toy} is an inexpensive platform for legged multi-robot research. With a fair bit of work, you can replace its circuit board with a Raspberry Pi 0 W, allowing you to use the robot in a ROS system, which allows for easier multirobot applications.
 
-\section{Components} \label{components}
+\section{Components} \label{sec:components}
 
 Here are the parts I used in my setup, but you can feel free to add or remove peripherals (like the IMU) as you see fit. I've hyperlinked product links, but you may find them cheaper from other sources.
 
@@ -47,7 +47,7 @@ Here are the parts I used in my setup, but you can feel free to add or remove pe
     This is the actual robot you will be using. There are other models with different shells, but I believe the only differences are cosmetic, which will not be apparent for our uses since we will not build the Kamigami with the added shell pieces to reduce weight.
     
     \item \href{https://www.adafruit.com/product/3400}{Raspberry Pi 0 W}
-    This model of the Raspberry Pi is gives us an inexpensive, light, and compact way to add a linux interface to the Kamigami. This Pi is equipped with Wifi and Bluetooth out of the box, making networking relatively painless.
+    This model of the Raspberry Pi is gives us an inexpensive, light, and compact way to add a linux interface to the Kamigami. This Pi is equipped with WiFi and Bluetooth out of the box, making networking relatively painless.
     
     \item \href{https://www.sparkfun.com/products/14451}{Motor Driver}
     Sparkfun's motor driver board allows us to to control both speed and direction of both motors without much hassle. Although the output current is a bit low, I did not find this impeding the operation of my Kamigami.
@@ -121,13 +121,13 @@ cd ~/ros_ws
 
 \subsection{Wiring}
 
-Before mounting all add components to the kamigami, I would aA Fritzing diagram of the circuit is shown below; the Fritzing file should be in the same directory as this document.
+Before mounting all additional components to the kamigami, I would reccomend soldering on all necessary wires between components. Not only is it easier to wire the components when they aren't fixed to the kamigami body, but you also don't have to worry about burning through the plastic chasis when soldering. A Fritzing diagram of the circuit is shown below; the Fritzing file should be in the same directory as this document.
 The pinout for the Raspberry Pi can be seen \href{https://pinout.xyz}{here},
-and the pinouts for other components can be viewed at the approriate pages in the \hyperref[components]{components section}.
+and the pinouts for other components can be viewed at the approriate pages in the \hyperref[sec:components]{components section}.
 
-\begin{figure}[H]
+\begin{figure}[h]
     \centering
-    \includegraphics[width=.75\textwidth]{images/wiring.pdf}
+    \includegraphics[width=.70\textwidth]{images/wiring.pdf}
     \caption{Wiring of Raspberry Pi 0}
     \label{fig:wiring}
 \end{figure}
@@ -140,6 +140,58 @@ I attached the IMU to the chasis using mounting tape so that there is some dampi
 
 \section{Network Setup}
 This system relies on a central computer able to be communicate with several Kamigami robots easily. Thus, there is some degree of networking setup with ROS in order to get this working right. The current system allows us to run a launch file on the central computer that starts up nodes on both the central computer and the Kamigami.
+
+\subsection{Connecting the Raspberry Pi to WiFi}
+These insturctions were adapted from \href{https://www.raspberrypi.org/documentation/configuration/wireless/headless.md}{here}.
+\vspace{2mm}
+\newline
+First, we must ensure that the Raspberry Pi's are on the same network as the main computer. Note that unless you are using a special WiFi dongle, the Raspberry Pi 0 W can only connect to 2.4 GHz WiFi networks. Take the microSD card where your Raspberry Pi operating was installed and plug it into computer where you can edit files on that microSD. You may need to use an adapter for this. The microSD card should have a \verb|boot| folder that you can access.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{images/boot.png}
+    \caption{Boot Folder}
+\end{figure}
+\vspace{2mm}
+\newline
+In this folder, you will create a file \verb|wpa_supplicant.conf| with information about your WiFi network. The file should be formatted as follows:
+
+\begin{minted}[breaklines, frame=single]{text}
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=<Insert 2 letter ISO 3166-1 country code here>
+
+network={
+ ssid="<Name of your wireless LAN>"
+ psk="<Password for your wireless LAN>"
+}
+\end{minted}
+
+Fill in the appropriate fields with your network information. The two letter country code for the USA is just US. You can find other country codes \href{https://en.wikipedia.org/wiki/ISO_3166-1}{here}. For \verb|ssid|, put in the SSID or name of your newtork. For \verb|psk|, enter in your WiFi network's password. If your network does not use standard WPA2 security or you just need additional information, then you should refer to \href{https://www.raspberrypi.org/documentation/configuration/wireless/wireless-cli.md}{this}.
+\newline
+\vspace{2mm}
+
+If I lived in the USA, my WiFI name is \verb|freewifi|, and my WiFI password is \verb|password|, my \verb|wpa_supplicant.conf| would looks like this
+\begin{minted}[breaklines, frame=single]{text}
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=US
+
+network={
+ ssid="freewifi"
+ psk="password"
+}
+\end{minted}
+After saving the file to \verb|boot/wpa_supplicant.conf|, you may remove the microSD card from your computer, plug it into the Raspberry Pi, and then turn on the Raspberry Pi. The green power light for the Raspberry Pi will probably flicker for some time, and then should eventually stay a constant green. At this point, you should wait for a few minutes and then attempt to reach the Raspberry Pi over a network connection. In your terminal, enter the command
+
+\begin{minted}[frame=single]{bash}
+ssh pi@raspberrypi.local
+\end{minted}
+
+You should be prompted for a password. The default password for a fresh Raspberry Pi is just \verb|raspberry|. We will change this shortly.
+\newline
+\vspace{2mm}
+
+If you have made it here, congrats! You have successfully connected your Raspberry Pi to a WiFi network. We can now set it up to recognize our main computer as the ROS master.
 
 \subsection{Setup Hostnames and Master}
 
