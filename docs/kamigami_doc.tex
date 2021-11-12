@@ -71,6 +71,8 @@ You're welcome to flash an image of my OS with ROS setup, but I would recommend 
 \subsection{Installing Raspbian}
 
     You will want to \href{https://www.raspberrypi.org/downloads/raspberry-pi-os/}{get the newest version of Raspbian}, now called Raspberry Pi OS, flashed to your SD card. As of writing this, the newest version is based off of Debian Buster, so I will tailor my instructions to that. I would recommend the light/minimal version, if it is available.
+    \linebreak\newline
+    Update (11/11/2021) - python-rosdep seems to not be compatible with Raspbian Bullseye, so make sure to use Raspbian Buster. Image can be found \href{http://downloads.raspberrypi.org/raspbian/images/raspbian-2020-02-14/}{here}. Seems that we will have to upgrade to ROS Noetic to keep up.
 
 \subsection{Getting ROS}
 SSH into the Pi 0 and run the following commands to install ROS. Credit to \href{https://github.com/Tiryoh/ros_melodic_raspbian}{this repo}.
